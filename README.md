@@ -41,7 +41,7 @@ The pipeline emphasizes:
 
 ### Class Distribution
 
-![Class Distribution](class_distribution.png)
+![Class Distribution](chart/class_distribution.png)
 
 The dataset is close to balanced, enabling fair comparison between models without heavy class weighting.
 
@@ -97,11 +97,11 @@ Designed for improved generalization and robustness.
 
 ### Baseline Model Training
 
-![Baseline Training](baseline_model_training_history.png)
+![Baseline Training](chart/baseline_model_training_history.png)
 
 ### Advanced Model Training
 
-![Advanced Training](advanced_model_training_history.png)
+![Advanced Training](chart/advanced_model_training_history.png)
 
 Both models converge smoothly, with the advanced model showing stronger validation stability.
 
@@ -113,11 +113,11 @@ Both models converge smoothly, with the advanced model showing stronger validati
 
 **Baseline Model**
 
-![Baseline Confusion Matrix](baseline_model_confusion_matrix.png)
+![Baseline Confusion Matrix](chart/baseline_model_confusion_matrix.png)
 
 **Advanced Model**
 
-![Advanced Confusion Matrix](advanced_model_confusion_matrix.png)
+![Advanced Confusion Matrix](chart/advanced_model_confusion_matrix.png)
 
 The advanced model demonstrates improved error handling and reduced misclassification.
 
@@ -125,7 +125,7 @@ The advanced model demonstrates improved error handling and reduced misclassific
 
 ### ROC Curve Comparison
 
-![ROC Curve](roc_curve_comparison.png)
+![ROC Curve](chart/roc_curve_comparison.png)
 
 Both models achieve strong separability. The advanced model achieves a higher AUC.
 
@@ -133,7 +133,7 @@ Both models achieve strong separability. The advanced model achieves a higher AU
 
 ### Precision-Recall Curve
 
-![Precision Recall](precision_recall_curve.png)
+![Precision Recall](chart/precision_recall_curve.png)
 
 The advanced model maintains stronger precision at higher recall levels.
 
@@ -149,17 +149,17 @@ A key contribution of this project is analyzing predictions by confidence tiers:
 
 ### Confidence Tier Comparison
 
-![Confidence Analysis](confidence_analysis.png)
+![Confidence Analysis](chart/confidence_analysis.png)
 
 ### Error vs Confidence
 
 **Baseline Model**
 
-![Baseline Error Confidence](baseline_model_error_by_confidence.png)
+![Baseline Error Confidence](chart/baseline_model_error_by_confidence.png)
 
 **Advanced Model**
 
-![Advanced Error Confidence](advanced_model_error_by_confidence.png)
+![Advanced Error Confidence](chart/advanced_model_error_by_confidence.png)
 
 ### Key Insight
 
@@ -175,7 +175,7 @@ This indicates:
 
 ## Misclassification Analysis
 
-![Misclassification Comparison](misclassification_comparison.png)
+![Misclassification Comparison](chart/misclassification_comparison.png)
 
 The advanced model achieves:
 
@@ -194,7 +194,7 @@ A full metric comparison is available in:
 
 ### Performance Summary
 
-![Model Comparison](model_comparison.png)
+![Model Comparison](chart/model_comparison.png)
 
 Metrics include:
 
@@ -213,11 +213,11 @@ The advanced model consistently outperforms the baseline.
 
 **Baseline Model**
 
-![Baseline Predictions](baseline_model_predictions.png)
+![Baseline Predictions](chart/baseline_model_predictions.png)
 
 **Advanced Model**
 
-![Advanced Predictions](advanced_model_predictions.png)
+![Advanced Predictions](chart/advanced_model_predictions.png)
 
 ---
 
