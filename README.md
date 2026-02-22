@@ -263,7 +263,7 @@ The pipeline automatically produces:
 ### Training
 
 ```bash
-python shot.py
+python small_CNN_models.py
 ```
 
 The script automatically:
