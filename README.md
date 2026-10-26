@@ -8,7 +8,7 @@ The repository contains one training and analysis script, example chart artifact
 
 The current script supports dynamic training augmentation, in-memory image caching, CUDA prefetching, optional mixed precision, validation checkpointing, and diagnostic plots.
 
-Before treating a run as reproducible evidence, address the known batch-shape, checkpoint-resume, evaluation, and confidence-bin limitations in [the improvement plan](improvement_repo.md). This documentation update does not fix those implementation issues.
+Known batch-shape, checkpoint-resume, evaluation, and confidence-bin limitations remain in the current script and are described below. Address them before treating a run as reproducible evidence. This documentation update does not fix those implementation issues.
 
 ## Models and workflow
 
@@ -119,7 +119,7 @@ These images are retained as historical project artifacts; no new numerical perf
 
 ## Development priorities
 
-See [improvement_repo.md](improvement_repo.md) for source evidence, implementation steps, and acceptance checks. Start with singleton batches and checkpoint preservation, then establish an independent evaluation protocol and reproducible run artifacts before expanding the model architectures.
+Start with singleton batches and checkpoint preservation, then establish an independent evaluation protocol and reproducible run artifacts before expanding the model architectures.
 
 ## License
 
