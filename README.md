@@ -1,312 +1,126 @@
-# Histopathologic Cancer Detection — Deep Learning Pipeline
+# Histopathologic Cancer Detection
 
-A high-performance PyTorch pipeline for histopathologic cancer detection using convolutional neural networks, GPU optimization, and confidence-aware evaluation.
+A PyTorch research project comparing two convolutional neural networks for binary classification of histopathology image patches.
 
-This project implements and compares **two CNN architectures** on a large Kaggle histopathology dataset, focusing on:
+The repository contains one training and analysis script, example chart artifacts, and an MIT software license. It is a portfolio experiment: independent patient-level or clinical validation has not been established.
 
-* Efficient GPU training
-* Dynamic data augmentation with RAM caching
-* Confidence-based reliability analysis
-* Detailed performance evaluation and visualization
+## Project status
 
----
+The current script supports dynamic training augmentation, in-memory image caching, CUDA prefetching, optional mixed precision, validation checkpointing, and diagnostic plots.
 
-## Project Overview
+Before treating a run as reproducible evidence, address the known batch-shape, checkpoint-resume, evaluation, and confidence-bin limitations in [the improvement plan](improvement_repo.md). This documentation update does not fix those implementation issues.
 
-This repository presents an complete end-to-end deep learning workflow for binary cancer classification from histopathology images.
+## Models and workflow
 
-Two models are implemented and evaluated:
+| Component | Current implementation |
+| --- | --- |
+| Baseline model | Two convolution blocks with batch normalization and pooling, followed by a dense classifier |
+| Advanced model | Four convolution blocks, batch normalization, dropout, global average pooling, and a dense classifier |
+| Output | One logit per patch; sigmoid probability and a strict `p > 0.5` classification threshold |
+| Training data | Decoded RGB images cached in RAM; random flips, rotation, and color jitter applied during access |
+| Validation data | Loaded from disk with resize, tensor conversion, and normalization; no random augmentation |
+| Model selection | Best checkpoint by validation accuracy; learning-rate scheduling and early stopping use validation loss |
+| Final analysis | Selected models evaluated again on the same validation split |
 
-* **Baseline Model** — Lightweight CNN for fast and stable training
-* **Advanced Model** — Deeper CNN with regularization and stronger feature extraction
+`main()` creates a label-stratified 80/20 training/validation split using `random_state=17`. The `test/` directory is counted for image statistics, but the script does not produce test predictions or evaluate a labeled test set.
 
-The pipeline emphasizes:
+## Set up a local experiment
 
-* GPU-optimized training
-* mixed precision acceleration (AMP)
-* asynchronous data prefetching
-* structured evaluation and visualization
-* confidence-tier performance analysis
+### 1. Prepare Python and dependencies
 
----
+The previous project guidance targets Python 3.10+, but the repository does not yet provide a tested dependency lockfile or a verified Python/PyTorch/torchvision/CUDA version matrix.
 
-## Dataset
+From a local checkout:
 
-**Dataset:** Histopathologic Cancer Detection (Kaggle)
+```bash
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install torch torchvision numpy pandas matplotlib seaborn scikit-learn tqdm pillow
+```
 
-* ~220k RGB images
-* Resolution: 96 × 96
-* Binary classification (Cancer / No Cancer)
-* Nearly balanced class distribution
+On Windows, activate with `.venv\Scripts\activate` instead. The install command is an unpinned starting point, not a tested reproducible environment. Select mutually compatible PyTorch and torchvision builds for your hardware and record the versions used for each run.
 
-### Class Distribution
+A CUDA-capable GPU is optional: the script selects CPU when CUDA is unavailable. For CPU experiments, set `USE_AMP = False` in the configuration section before running, because validation currently enters a CUDA autocast context whenever that flag is true.
 
-![Class Distribution](chart/class_distribution.png)
+### 2. Place the dataset
 
-The dataset is close to balanced, enabling fair comparison between models without heavy class weighting.
+The original project describes the Kaggle Histopathologic Cancer Detection dataset. Obtain the data separately under its source terms; no images or labels are included here. Record the exact dataset source, version, label definition, and reuse terms with your experiment.
 
----
+By default, launch from a working directory containing:
 
-## System Architecture
+```text
+small_CNN_models.py
+train_labels.csv
+train/
+    <image_id>.tif
+test/
+    <test_image_id>.tif
+```
 
-### Data Pipeline
+`train_labels.csv` must contain `id` and binary `label` columns. Each training row is loaded from `train/<id>.tif`, converted to RGB, and resized to 96 × 96. IDs should omit the `.tif` suffix. Use the source dataset's label definition when interpreting class 0 and class 1; a patch label does not establish a patient diagnosis.
 
-* RAM caching of decoded images
-* Dynamic augmentation per epoch
-* GPU prefetching for faster training
-* Mixed precision training (AMP)
+Both `train/` and `test/` must exist with the current defaults because `main()` lists both directories. Test images are not otherwise used. To use different paths, edit `LABELS_PATH`, `TRAIN_DIR`, and `TEST_DIR` near the top of [small_CNN_models.py](small_CNN_models.py).
 
-### Models
+### 3. Review configuration and run
 
-#### Baseline Model
+| Setting | Default |
+| --- | --- |
+| `BATCH_SIZE` | 192 |
+| `LEARNING_RATE` | 0.0001 |
+| `EPOCHS` | 15 maximum per training call |
+| `IMAGE_SIZE` | 96 |
+| `NUM_WORKERS` | 4 for validation; training uses 0 |
+| `PREFETCH_FACTOR` | 2 |
+| `USE_AMP` | True |
+| Optimizer / loss | Adam / BCEWithLogitsLoss |
 
-* 2 convolution blocks
-* Batch normalization
-* Max pooling
-* Fully connected classifier
+Configuration is currently edited in the script; there is no command-line configuration interface. Training drops its last incomplete batch. Validation retains it, and a final validation batch of one item currently triggers the known shape bug.
 
-Designed for speed and stability.
+Training caches the training split's decoded images in RAM. At roughly 176,000 RGB 96 × 96 patches, raw pixels alone would occupy about 4.9 GB in decimal units, before Python and image-object overhead. This is a capacity estimate, not a measured memory requirement. Reduce the experiment size or add a disk-backed loading mode before attempting a run on a memory-constrained machine.
 
-#### Advanced Model
-
-* 4 convolution blocks
-* Batch normalization
-* Dropout regularization
-* Global average pooling
-* Deeper classifier
-
-Designed for improved generalization and robustness.
-
----
-
-## Training Configuration
-
-| Parameter       | Value             |
-| --------------- | ----------------- |
-| Batch size      | 192               |
-| Epochs          | 15                |
-| Optimizer       | Adam              |
-| Learning rate   | 1e-4              |
-| Loss            | BCEWithLogitsLoss |
-| Image size      | 96 × 96           |
-| Mixed precision | Enabled           |
-
----
-
-## Training Performance
-
-### Baseline Model Training
-
-![Baseline Training](chart/baseline_model_training_history.png)
-
-### Advanced Model Training
-
-![Advanced Training](chart/advanced_model_training_history.png)
-
-Both models converge smoothly, with the advanced model showing stronger validation stability.
-
----
-
-## Model Evaluation
-
-### Confusion Matrices
-
-**Baseline Model**
-
-![Baseline Confusion Matrix](chart/baseline_model_confusion_matrix.png)
-
-**Advanced Model**
-
-![Advanced Confusion Matrix](chart/advanced_model_confusion_matrix.png)
-
-The advanced model demonstrates improved error handling and reduced misclassification.
-
----
-
-### ROC Curve Comparison
-
-![ROC Curve](chart/roc_curve_comparison.png)
-
-Both models achieve strong separability. The advanced model achieves a higher AUC.
-
----
-
-### Precision-Recall Curve
-
-![Precision Recall](chart/precision_recall_curve.png)
-
-The advanced model maintains stronger precision at higher recall levels.
-
----
-
-## Confidence-Based Reliability Analysis
-
-A key contribution of this project is analyzing predictions by confidence tiers:
-
-* Low confidence (< 50%)
-* Medium confidence (50–90%)
-* High confidence (> 90%)
-
-### Confidence Tier Comparison
-
-![Confidence Analysis](chart/confidence_analysis.png)
-
-### Error vs Confidence
-
-**Baseline Model**
-
-![Baseline Error Confidence](chart/baseline_model_error_by_confidence.png)
-
-**Advanced Model**
-
-![Advanced Error Confidence](chart/advanced_model_error_by_confidence.png)
-
-### Key Insight
-
-The advanced model significantly reduces **false negatives**, especially in **high-confidence predictions**, which is critical in cancer detection systems.
-
-This indicates:
-
-* better feature representation
-* stronger decision boundaries
-* improved reliability in confident predictions
-
----
-
-## Misclassification Analysis
-
-![Misclassification Comparison](chart/misclassification_comparison.png)
-
-The advanced model achieves:
-
-* fewer false negatives
-* improved balance between precision and recall
-* more reliable high-confidence predictions
-
----
-
-## Quantitative Comparison
-
-A full metric comparison is available in:
-
-* `model_comparison.csv`
-* `model_results.json`
-
-### Performance Summary
-
-![Model Comparison](chart/model_comparison.png)
-
-Metrics include:
-
-* Accuracy
-* Precision
-* Recall
-* F1 score
-* AUC-ROC
-* Average precision
-
-The advanced model consistently outperforms the baseline.
-
----
-
-## Sample Predictions
-
-**Baseline Model**
-
-![Baseline Predictions](chart/baseline_model_predictions.png)
-
-**Advanced Model**
-
-![Advanced Predictions](chart/advanced_model_predictions.png)
-
----
-
-## Generated Outputs
-
-The pipeline automatically produces:
-
-### Figures
-
-* class distribution
-* training history
-* confusion matrices
-* ROC & precision-recall curves
-* confidence analysis
-* misclassification comparisons
-* prediction visualizations
-
-### Models
-
-* best checkpoints
-* final trained weights
-
-### Data
-
-* metric summaries (CSV + JSON)
-* confidence tier analysis
-
----
-
-## How to Run
-
-### Requirements
-
-* Python 3.10+
-* PyTorch with CUDA
-* torchvision
-* pandas
-* matplotlib
-* seaborn
-* scikit-learn
-* tqdm
-
-### Training
+For a new experiment, use a clean working directory or archive previous output files first. The script automatically loads existing `baseline_model_best.pth` and `advanced_model_best.pth` files and writes fixed output filenames. Its current loading behavior is partial-state extra training, not a faithful resume. Only load checkpoints you trust: the current code uses `torch.load(..., weights_only=False)`.
 
 ```bash
 python small_CNN_models.py
 ```
 
-The script automatically:
+The script displays plots with `plt.show()`, so an interactive run may pause at plot windows. A full run needs local data, sufficient resources, and a compatible environment. No end-to-end training result is guaranteed by the setup steps above.
 
-* loads the dataset
-* trains both models
-* generates metrics and visualizations
-* saves checkpoints and results
+## Outputs and interpretation
 
----
+A successful run writes outputs to the **current working directory**, not automatically into `chart/`.
 
-## Project Goals
+| Output | Contents |
+| --- | --- |
+| `baseline_model_best.pth`, `advanced_model_best.pth` | Validation-accuracy-selected weights with optimizer state, epoch, and score |
+| `baseline_model_final.pth`, `advanced_model_final.pth` | State dictionaries of the selected models reloaded for final analysis |
+| `model_results.json` | Per-model metrics, confidence-tier metrics, and some training parameters |
+| `model_comparison.csv` | Accuracy, precision, recall, F1, ROC AUC, and average precision |
+| `confidence_analysis.csv` | Per-model metrics for populated confidence tiers |
+| PNG files | Training histories, confusion matrices, ROC/PR curves, predictions, and confidence/error comparisons |
 
-This project demonstrates:
+The CSV/JSON files and trained weights above are generated outputs; they are **not committed** in the current repository. The example PNGs in [chart/](chart/) do not include enough split, dataset-version, environment, or run metadata to independently reconstruct their results.
 
-* practical deep learning engineering
-* GPU-optimized training pipelines
-* comparative model analysis
-* reliability-focused evaluation
-* professional visualization and reporting
+All metrics currently emitted by the script are **selected-validation results**. Validation is reused for checkpoint selection and final reporting, so these are not untouched test estimates. Patient/slide independence is unknown from the committed material. Label stratification alone does not demonstrate group independence.
 
-It serves as a foundation for more advanced architectures and scaling experiments.
+The confidence value is `max(p, 1 - p)`, which is always at least 0.5. The current “Low (<50%)” tier is therefore empty by definition, and the error-by-confidence chart excludes values exactly equal to 1.0. Empty categories plotted as zero should not be interpreted as measured accuracy or error. Raw sigmoid confidence also does not establish calibration.
 
----
+### Example artifacts
 
-## Future Work
+These images are retained as historical project artifacts; no new numerical performance claim is made here.
 
-Planned improvements include:
+| Example | Artifact |
+| --- | --- |
+| Training history | [Baseline](chart/baseline_model_training_history.png) · [Advanced](chart/advanced_model_training_history.png) |
+| Confusion matrices | [Baseline](chart/baseline_model_confusion_matrix.png) · [Advanced](chart/advanced_model_confusion_matrix.png) |
+| Ranking metrics | [ROC comparison](chart/roc_curve_comparison.png) · [Precision-recall comparison](chart/precision_recall_curve.png) |
+| Overall comparison | [Model comparison](chart/model_comparison.png) |
 
-* transfer learning with modern architectures
-* ensemble models
-* advanced augmentation strategies
-* cross-validation experiments
-* model calibration studies
+## Development priorities
 
----
+See [improvement_repo.md](improvement_repo.md) for source evidence, implementation steps, and acceptance checks. Start with singleton batches and checkpoint preservation, then establish an independent evaluation protocol and reproducible run artifacts before expanding the model architectures.
 
 ## License
 
-MIT License
-
----
-
-## Author
-
-Developed as a deep learning portfolio project focused on cancer detection and high-performance model engineering.
+The software is available under the [MIT License](LICENSE). Dataset access and reuse terms must be checked separately with the data provider.
